@@ -638,6 +638,35 @@
         radial-gradient(ellipse 40cqi 60cqi at 85% 30%, var(--c-glow2) 0%, transparent 70%);
     }
 
+    /* Crop overlay for WeChat */
+    .crop-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .crop-border {
+      position: absolute;
+      border: 2px dashed rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+      box-sizing: border-box;
+      cursor: grab;
+      pointer-events: auto;
+      aspect-ratio: 1/1;
+      width: 40%;
+      left: 30%;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .crop-border:active {
+      cursor: grabbing;
+    }
+
     /* ── Decoration elements ── */
     .deco-grid {
       position: absolute;
@@ -1349,6 +1378,10 @@
               <p class="subtitle"></p>
             </div>
             <div class="meta"></div>
+            <!-- Crop overlay -->
+            <div id="crop-overlay" class="crop-overlay" style="display: none;">
+              <div id="crop-border" class="crop-border"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1469,6 +1502,17 @@
           <div class="slider-row">
             <input id="sld-width" type="range" min="30" max="95" step="1" value="70">
             <span id="val-width" class="slider-val">70 cqi</span>
+          </div>
+        </div>
+
+        <!-- 是否裁剪选项 -->
+        <div class="psec" id="crop-toggle-section" style="display: none;">
+          <div class="psec-header">
+            <span class="psec-title">是否裁剪</span>
+          </div>
+          <div class="field">
+            <button class="btn" id="btn-crop-no" onclick="setCropEnabled(false)" style="margin-right: 8px;">否</button>
+            <button class="btn btn-primary" id="btn-crop-yes" onclick="setCropEnabled(true)">是</button>
           </div>
         </div>
 
@@ -1910,7 +1954,86 @@
       set('sld-title-lh', p.titleLH); set('sld-subtitle-lh', p.subtitleLH);
       set('sld-title-mt', p.titleMT); set('sld-title-mb', p.titleMB);
       syncAllSliders();
+
+      // Show/hide crop toggle for 2.35:1 ratio
+      const cropSection = document.getElementById('crop-toggle-section');
+      const cropOverlay = document.getElementById('crop-overlay');
+      if (btn.dataset.ratio === '2.35/1') {
+        cropSection.style.display = 'block';
+      } else {
+        cropSection.style.display = 'none';
+        // Hide crop overlay when switching away from 2.35:1
+        cropOverlay.style.display = 'none';
+        cropEnabled = false;
+        updateCropToggleButtons();
+      }
     });
+
+    // ── Crop toggle and drag logic ─────────────────────────────────────────
+    let cropEnabled = false;
+    let cropState = {
+      cropX: 0.3,
+      cropWidth: 0.4,
+      isDragging: false,
+      startX: 0,
+      startCropX: 0
+    };
+
+    function setCropEnabled(enabled) {
+      cropEnabled = enabled;
+      const cropOverlay = document.getElementById('crop-overlay');
+      if (enabled) {
+        cropOverlay.style.display = 'block';
+      } else {
+        cropOverlay.style.display = 'none';
+      }
+      updateCropToggleButtons();
+    }
+
+    function updateCropToggleButtons() {
+      const btnNo = document.getElementById('btn-crop-no');
+      const btnYes = document.getElementById('btn-crop-yes');
+      if (cropEnabled) {
+        btnNo.className = 'btn';
+        btnYes.className = 'btn btn-primary';
+      } else {
+        btnNo.className = 'btn btn-primary';
+        btnYes.className = 'btn';
+      }
+    }
+
+    // Setup drag for crop border
+    function setupCropDrag() {
+      const cropBorder = document.getElementById('crop-border');
+      if (!cropBorder) return;
+
+      cropBorder.addEventListener('mousedown', (e) => {
+        if (!cropEnabled) return;
+        cropState.isDragging = true;
+        cropState.startX = e.clientX;
+        cropState.startCropX = cropState.cropX;
+        e.preventDefault();
+        e.stopPropagation();
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!cropState.isDragging) return;
+
+        const cover = document.getElementById('cover-main');
+        const rect = cover.getBoundingClientRect();
+        const deltaX = (e.clientX - cropState.startX) / rect.width;
+
+        let newCropX = cropState.startCropX + deltaX;
+        newCropX = Math.max(0, Math.min(1 - cropState.cropWidth, newCropX));
+        cropState.cropX = newCropX;
+
+        cropBorder.style.left = (cropState.cropX * 100) + '%';
+      });
+
+      document.addEventListener('mouseup', () => {
+        cropState.isDragging = false;
+      });
+    }
 
     // ── Presets ────────────────────────────────────────────────────────────
     const PRESETS = [
@@ -2257,6 +2380,7 @@
     syncContent();
     syncAllSliders();
     initPresets();
+    setupCropDrag();
     applyPreset(0);
   </script>
 </body>
