@@ -658,14 +658,39 @@
       pointer-events: auto;
       aspect-ratio: 1/1;
       width: 40%;
+      height: auto;
       left: 30%;
-      top: 50%;
-      transform: translateY(-50%);
+      top: 30%;
     }
 
-    .crop-border:active {
+    .crop-border.dragging {
       cursor: grabbing;
     }
+
+    /* Resize handles */
+    .resize-handle {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(0, 0, 0, 0.3);
+      border-radius: 2px;
+      width: 8px;
+      height: 8px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .crop-border:hover .resize-handle {
+      opacity: 1;
+    }
+
+    .resize-handle.nw { top: -4px; left: -4px; cursor: nw-resize; }
+    .resize-handle.ne { top: -4px; right: -4px; cursor: ne-resize; }
+    .resize-handle.sw { bottom: -4px; left: -4px; cursor: sw-resize; }
+    .resize-handle.se { bottom: -4px; right: -4px; cursor: se-resize; }
+    .resize-handle.n { top: -4px; left: 50%; transform: translateX(-50%); cursor: n-resize; }
+    .resize-handle.s { bottom: -4px; left: 50%; transform: translateX(-50%); cursor: s-resize; }
+    .resize-handle.w { left: -4px; top: 50%; transform: translateY(-50%); cursor: w-resize; }
+    .resize-handle.e { right: -4px; top: 50%; transform: translateY(-50%); cursor: e-resize; }
 
     /* Switch toggle for crop - smaller size */
     .switch-group {
@@ -1440,7 +1465,16 @@
             <div class="meta"></div>
             <!-- Crop overlay -->
             <div id="crop-overlay" class="crop-overlay" style="display: none;">
-              <div id="crop-border" class="crop-border"></div>
+              <div id="crop-border" class="crop-border">
+                <div class="resize-handle nw"></div>
+                <div class="resize-handle ne"></div>
+                <div class="resize-handle sw"></div>
+                <div class="resize-handle se"></div>
+                <div class="resize-handle n"></div>
+                <div class="resize-handle s"></div>
+                <div class="resize-handle w"></div>
+                <div class="resize-handle e"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -2039,10 +2073,15 @@
     let cropEnabled = false;
     let cropState = {
       cropX: 0.3,
-      cropWidth: 0.4,
+      cropY: 0.3,
+      cropSize: 0.4,
       isDragging: false,
+      isResizing: false,
       startX: 0,
-      startCropX: 0
+      startY: 0,
+      startCropX: 0,
+      startCropY: 0,
+      startCropSize: 0.4
     };
 
     function setCropEnabled(enabled) {
@@ -2063,36 +2102,106 @@
       }
     }
 
-    // Setup drag for crop border
+    // Setup drag and resize for crop border
     function setupCropDrag() {
       const cropBorder = document.getElementById('crop-border');
       if (!cropBorder) return;
 
+      // Drag - move the crop border (not on resize handles)
       cropBorder.addEventListener('mousedown', (e) => {
         if (!cropEnabled) return;
+        if (e.target.classList.contains('resize-handle')) return; // Skip if clicking handle
         cropState.isDragging = true;
         cropState.startX = e.clientX;
+        cropState.startY = e.clientY;
         cropState.startCropX = cropState.cropX;
+        cropState.startCropY = cropState.cropY;
+        cropBorder.classList.add('dragging');
+        e.preventDefault();
+        e.stopPropagation();
+      });
+
+      // Resize - using handles
+      cropBorder.addEventListener('mousedown', (e) => {
+        if (!cropEnabled) return;
+        if (!e.target.classList.contains('resize-handle')) return;
+        cropState.isResizing = true;
+        cropState.resizeHandle = e.target.className.replace('resize-handle ', ''); // nw, ne, sw, se, n, s, w, e
+        cropState.startX = e.clientX;
+        cropState.startY = e.clientY;
+        cropState.startCropX = cropState.cropX;
+        cropState.startCropY = cropState.cropY;
+        cropState.startCropSize = cropState.cropSize;
         e.preventDefault();
         e.stopPropagation();
       });
 
       document.addEventListener('mousemove', (e) => {
-        if (!cropState.isDragging) return;
-
+        if (!cropEnabled) return;
         const cover = document.getElementById('cover-main');
         const rect = cover.getBoundingClientRect();
-        const deltaX = (e.clientX - cropState.startX) / rect.width;
 
-        let newCropX = cropState.startCropX + deltaX;
-        newCropX = Math.max(0, Math.min(1 - cropState.cropWidth, newCropX));
-        cropState.cropX = newCropX;
+        // Dragging - move in all directions
+        if (cropState.isDragging) {
+          const deltaX = (e.clientX - cropState.startX) / rect.width;
+          const deltaY = (e.clientY - cropState.startY) / rect.height;
 
-        cropBorder.style.left = (cropState.cropX * 100) + '%';
+          let newCropX = cropState.startCropX + deltaX;
+          let newCropY = cropState.startCropY + deltaY;
+
+          // Clamp to bounds (keep crop box within cover)
+          newCropX = Math.max(0, Math.min(1 - cropState.cropSize, newCropX));
+          newCropY = Math.max(0, Math.min(1 - cropState.cropSize, newCropY));
+
+          cropState.cropX = newCropX;
+          cropState.cropY = newCropY;
+
+          cropBorder.style.left = (cropState.cropX * 100) + '%';
+          cropBorder.style.top = (cropState.cropY * 100) + '%';
+          cropBorder.style.transform = 'none';
+        }
+
+        // Resizing - scale the crop box
+        if (cropState.isResizing) {
+          const deltaX = (e.clientX - cropState.startX) / rect.width;
+          const deltaY = (e.clientY - cropState.startY) / rect.height;
+
+          // Use larger of the two deltas for uniform scaling (maintain aspect ratio)
+          const delta = Math.abs(deltaX) > Math.abs(deltaY) ? deltaX : deltaY;
+
+          let newSize = cropState.startCropSize + delta;
+          // Clamp size between 20% and 80%
+          newSize = Math.max(0.2, Math.min(0.8, newSize));
+
+          cropState.cropSize = newSize;
+
+          // Update size
+          cropBorder.style.width = (cropState.cropSize * 100) + '%';
+          cropBorder.style.height = (cropState.cropSize * 100) + '%';
+
+          // Keep crop box within bounds when resizing from corners
+          if (cropState.resizeHandle.includes('w')) {
+            const maxX = 1 - cropState.cropSize;
+            if (cropState.cropX > maxX) {
+              cropState.cropX = maxX;
+              cropBorder.style.left = (cropState.cropX * 100) + '%';
+            }
+          }
+          if (cropState.resizeHandle.includes('n')) {
+            const maxY = 1 - cropState.cropSize;
+            if (cropState.cropY > maxY) {
+              cropState.cropY = maxY;
+              cropBorder.style.top = (cropState.cropY * 100) + '%';
+            }
+          }
+        }
       });
 
       document.addEventListener('mouseup', () => {
         cropState.isDragging = false;
+        cropState.isResizing = false;
+        cropState.resizeHandle = null;
+        cropBorder.classList.remove('dragging');
       });
     }
 
