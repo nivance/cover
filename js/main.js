@@ -850,6 +850,22 @@
       }
     }
 
+    function saveConfig() {
+      const payload = buildConfigPayload();
+      const json = JSON.stringify(payload, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.download = `config.json`;
+      a.href = url;
+      a.click();
+      URL.revokeObjectURL(url);
+      const btn = document.getElementById('btn-save-config');
+      const prev = btn.textContent;
+      btn.textContent = '已保存';
+      setTimeout(() => { btn.textContent = '保存配置'; }, 1200);
+    }
+
     // ── Reset ──────────────────────────────────────────────────────────────
     function resetAll() {
       document.getElementById('inp-label').value = DEFAULT.label;
