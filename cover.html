@@ -667,6 +667,64 @@
       cursor: grabbing;
     }
 
+    /* Switch toggle for crop */
+    .switch-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 26px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .switch-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #cbd5e1;
+      border-radius: 26px;
+      transition: 0.3s;
+    }
+
+    .switch-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      border-radius: 50%;
+      transition: 0.3s;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .switch input:checked + .switch-slider {
+      background-color: #2563eb;
+    }
+
+    .switch input:checked + .switch-slider:before {
+      transform: translateX(22px);
+    }
+
+    .switch-label {
+      font-size: 14px;
+      color: #64748b;
+    }
+
     /* ── Decoration elements ── */
     .deco-grid {
       position: absolute;
@@ -1511,8 +1569,13 @@
             <span class="psec-title">是否裁剪</span>
           </div>
           <div class="field">
-            <button class="btn" id="btn-crop-no" onclick="setCropEnabled(false)" style="margin-right: 8px;">否</button>
-            <button class="btn btn-primary" id="btn-crop-yes" onclick="setCropEnabled(true)">是</button>
+            <div class="switch-group">
+              <label class="switch">
+                <input type="checkbox" id="crop-toggle" onchange="setCropEnabled(this.checked)">
+                <span class="switch-slider"></span>
+              </label>
+              <span class="switch-label" id="crop-label">不裁剪</span>
+            </div>
           </div>
         </div>
 
@@ -1966,7 +2029,7 @@
         // Hide crop overlay when switching away from 2.35:1
         cropOverlay.style.display = 'none';
         cropEnabled = false;
-        updateCropToggleButtons();
+        setCropEnabled(false);
       }
     });
 
@@ -1983,23 +2046,18 @@
     function setCropEnabled(enabled) {
       cropEnabled = enabled;
       const cropOverlay = document.getElementById('crop-overlay');
+      const cropToggle = document.getElementById('crop-toggle');
+      const cropLabel = document.getElementById('crop-label');
+
+      // Sync checkbox state
+      if (cropToggle) cropToggle.checked = enabled;
+
       if (enabled) {
         cropOverlay.style.display = 'block';
+        cropLabel.textContent = '裁剪中';
       } else {
         cropOverlay.style.display = 'none';
-      }
-      updateCropToggleButtons();
-    }
-
-    function updateCropToggleButtons() {
-      const btnNo = document.getElementById('btn-crop-no');
-      const btnYes = document.getElementById('btn-crop-yes');
-      if (cropEnabled) {
-        btnNo.className = 'btn';
-        btnYes.className = 'btn btn-primary';
-      } else {
-        btnNo.className = 'btn btn-primary';
-        btnYes.className = 'btn';
+        cropLabel.textContent = '不裁剪';
       }
     }
 
