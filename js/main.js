@@ -712,10 +712,17 @@
 
       const activeSchemeBtn = getActiveSchemeButton();
       const idx = activeSchemeBtn ? +activeSchemeBtn.dataset.scheme : DEFAULT_SCHEME;
+      const scheme = COLOR_SCHEMES[idx];
       return {
         type: 'scheme',
         index: idx,
-        name: COLOR_SCHEMES[idx].name,
+        name: scheme.name,
+        // Include full color data for Python batch generation
+        colors: {
+          bg: scheme.bg,
+          glow: scheme.glow,
+          text: scheme.text,
+        },
       };
     }
 
@@ -851,8 +858,72 @@
     }
 
     function saveConfig() {
-      const payload = buildConfigPayload();
-      const json = JSON.stringify(payload, null, 2);
+      // Save FULL configuration for batch generation with Python
+      // Includes ALL settings (not just changes from default)
+      const ratioBtn = getActiveRatioButton();
+      const ratio = ratioBtn?.dataset.ratio || DEFAULT_RATIO;
+      const ratioLabel = ratioBtn?.dataset.label || '5:2 · 1200×480';
+      const background = getCurrentBackgroundConfig();
+      const fontId = getCurrentFontChoice();
+
+      const fullConfig = {
+        // Ratio
+        ratio: ratio,
+        ratioLabel: ratioLabel,
+
+        // All text content
+        content: {
+          label: document.getElementById('inp-label').value,
+          title: document.getElementById('inp-title').value,
+          subtitle: document.getElementById('inp-subtitle').value,
+          author: document.getElementById('inp-author').value,
+        },
+
+        // All typography/slider settings
+        typography: {
+          labelSize: readNumber('sld-label'),
+          titleSize: readNumber('sld-title'),
+          subtitleSize: readNumber('sld-subtitle'),
+          contentWidth: readNumber('sld-width'),
+          titleLineHeight: readNumber('sld-title-lh'),
+          subtitleLineHeight: readNumber('sld-subtitle-lh'),
+          titleMarginTop: readNumber('sld-title-mt'),
+          titleMarginBottom: readNumber('sld-title-mb'),
+        },
+
+        // Font
+        font: {
+          id: fontId,
+          name: FONT_OPTIONS[fontId] ? FONT_OPTIONS[fontId].name : '',
+        },
+
+        // Decoration
+        decoration: currentDeco,
+
+        // Background / color scheme
+        background: background,
+
+        // All text colors
+        textColors: {
+          label: normalizeHex(document.getElementById('clr-label').value),
+          title: normalizeHex(document.getElementById('clr-title').value),
+          subtitle: normalizeHex(document.getElementById('clr-subtitle').value),
+          meta: normalizeHex(document.getElementById('clr-meta').value),
+        },
+
+        // Field visibility
+        visibility: { ...visState },
+
+        // Crop state (for 2.35:1 ratio 1:1 crop)
+        crop: {
+          enabled: cropEnabled,
+          x: cropState.cropX,
+          y: cropState.cropY,
+          size: cropState.cropSize,
+        },
+      };
+
+      const json = JSON.stringify(fullConfig, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
