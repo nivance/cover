@@ -1605,14 +1605,14 @@
         <!-- 是否裁剪选项 -->
         <div class="psec" id="crop-toggle-section" style="display: none;">
           <div class="psec-header">
-            <span class="psec-title">是否裁剪</span>
+            <span class="psec-title">公众号小封面</span>
             <div class="field" style="margin-left: 16px;">
               <div class="switch-group">
                 <label class="switch">
                   <input type="checkbox" id="crop-toggle" onchange="setCropEnabled(this.checked)">
                   <span class="switch-slider"></span>
                 </label>
-                <span class="switch-label" id="crop-label">不裁剪</span>
+                <span class="switch-label" id="crop-label">打开</span>
               </div>
             </div>
           </div>
@@ -2100,10 +2100,10 @@
 
       if (enabled) {
         cropOverlay.style.display = 'block';
-        cropLabel.textContent = '裁剪中';
+        cropLabel.textContent = '关闭';
       } else {
         cropOverlay.style.display = 'none';
-        cropLabel.textContent = '不裁剪';
+        cropLabel.textContent = '打开';
       }
     }
 
@@ -2281,12 +2281,8 @@
       buildDecorations(p.deco);
       document.getElementById('sel-font').value = p.font || DEFAULT_FONT;
       applyFontChoice(p.font || DEFAULT_FONT);
-      const map = { label: 'inp-label', title: 'inp-title', subtitle: 'inp-subtitle', author: 'inp-author' };
-      const targetContent = getPresetContent(p);
-      Object.entries(targetContent).forEach(([k, v]) => {
-        const el = document.getElementById(map[k]);
-        if (el) el.value = v;
-      });
+      // Do NOT overwrite existing user text input when switching presets
+      // Only sync colors, decorations, font, and visibility
       syncContent();
       const targetVis = getPresetVisibility(p);
       Object.entries(targetVis).forEach(([field, show]) => {
