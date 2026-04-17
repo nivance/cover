@@ -1070,6 +1070,7 @@
       padding: 0.35cqi 1cqi;
       border-radius: 20px;
       border: 1px solid rgba(255, 255, 255, 0.2);
+      white-space: pre-wrap;
     }
 
     .cover h1 {
@@ -1080,6 +1081,7 @@
       margin-bottom: 1.6cqi;
       letter-spacing: -0.01em;
       max-width: 70cqi;
+      white-space: pre-wrap;
     }
 
     .cover .subtitle {
@@ -1088,6 +1090,7 @@
       line-height: 1.6;
       max-width: 70cqi;
       font-weight: 400;
+      white-space: pre-wrap;
     }
 
     .cover .meta {
@@ -1986,10 +1989,12 @@
 
     function syncContent() {
       const cover = document.getElementById('cover-main');
-      cover.querySelector('.label').textContent = document.getElementById('inp-label').value;
-      cover.querySelector('h1').textContent = document.getElementById('inp-title').value;
-      cover.querySelector('.subtitle').textContent = document.getElementById('inp-subtitle').value;
-      cover.querySelector('.meta').textContent = document.getElementById('inp-author').value;
+      // Convert newlines to <br> for proper line breaks in HTML
+      const nl2br = str => str.replace(/\n/g, '<br>');
+      cover.querySelector('.label').innerHTML = nl2br(document.getElementById('inp-label').value);
+      cover.querySelector('h1').innerHTML = nl2br(document.getElementById('inp-title').value);
+      cover.querySelector('.subtitle').innerHTML = nl2br(document.getElementById('inp-subtitle').value);
+      cover.querySelector('.meta').innerHTML = nl2br(document.getElementById('inp-author').value);
     }
 
     ['inp-label', 'inp-title', 'inp-subtitle', 'inp-author'].forEach(id => {
