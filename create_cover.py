@@ -78,7 +78,7 @@ def add_title_to_image(image_path, output_path, main_title, sub_title):
         sub_bbox = draw.textbbox((0, 0), sub_title, font=sub_font)
         sub_w = sub_bbox[2] - sub_bbox[0]
         sub_x = (width - sub_w) // 2
-        sub_y = final_main_y + 80  # 主标题最后一行到副标题间距
+        sub_y = final_main_y + 180  # 主标题最后一行到副标题间距
     else:
         sub_x = 0
         sub_y = 0
