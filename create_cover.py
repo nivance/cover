@@ -73,21 +73,38 @@ def add_title_to_image(image_path, output_path, main_title, sub_title):
         current_x += (char_bbox[2] - char_bbox[0]) + char_spacing
         final_main_y = main_y
 
-    # 副标题基于主标题最后一行计算位置，并重新计算居中
+    # 副标题：支持换行，每行单独居中
     if sub_title:
-        sub_bbox = draw.textbbox((0, 0), sub_title, font=sub_font)
-        sub_w = sub_bbox[2] - sub_bbox[0]
-        sub_x = (width - sub_w) // 2
-        sub_y = final_main_y + 180  # 主标题最后一行到副标题间距
-    else:
-        sub_x = 0
-        sub_y = 0
+        # 按换行分割，逐行处理，每行都居中
+        lines = sub_title.split('\n')
+        current_sub_y = final_main_y + 180  # 主标题最后一行到副标题间距
 
-    # 副标题保持单阴影效果
-    if sub_title:
-        shadow_offset = 2
-        draw.text((sub_x + shadow_offset, sub_y + shadow_offset), sub_title, font=sub_font, fill=(0, 0, 0, 200))
-        draw.text((sub_x, sub_y), sub_title, font=sub_font, fill=(255, 255, 255, 255))
+        for line in lines:
+            if not line:  # 跳过空行
+                current_sub_y += sub_size + int(sub_size * 0.2)
+                continue
+            # 计算当前行宽度，居中
+            line_bbox = draw.textbbox((0, 0), line, font=sub_font)
+            line_w = line_bbox[2] - line_bbox[0]
+            line_x = (width - line_w) // 2
+
+            # 阴影 + 文字
+            shadow_offset = 2
+            # 阴影
+            current_x = line_x
+            for char in line:
+                draw.text((current_x + shadow_offset, current_sub_y + shadow_offset), char, font=sub_font, fill=(0, 0, 0, 200))
+                char_bbox = sub_font.getbbox(char)
+                current_x += (char_bbox[2] - char_bbox[0])
+            # 文字
+            current_x = line_x
+            for char in line:
+                draw.text((current_x, current_sub_y), char, font=sub_font, fill=(255, 255, 255, 255))
+                char_bbox = sub_font.getbbox(char)
+                current_x += (char_bbox[2] - char_bbox[0])
+
+            # 下一行
+            current_sub_y += sub_size + int(sub_size * 0.2)
 
     # 保存
     if output_path.lower().endswith(('.jpg', '.jpeg')):
@@ -108,7 +125,7 @@ if __name__ == "__main__":
             background,
             output,
             "网球知识百问百答",
-            "为什么中心场票价贵那么多？"
+            "为什么计分是\n15-30-40\n而不是 1-2-3?"
         )
     else:
         print(f"❌ 请将背景图片命名为: {background}")
