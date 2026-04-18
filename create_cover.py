@@ -31,6 +31,23 @@ def add_title_to_image(image_path, output_path, main_title, sub_title):
     main_y_original = main_y  # 保存起始位置
     final_main_y = main_y  # 记录最后一行的y位置给副标题
 
+    # 模拟加粗：多次偏移叠加让文字变粗
+    # 四个方向各偏移一个像素，再叠加原来的阴影和文字
+    offsets = [(-2, 0), (2, 0), (0, -2), (0, 2)]
+    current_x = main_x
+    main_y = main_y_original
+    for char in main_title:
+        if char == '\n':
+            current_x = main_x
+            main_y += main_size + int(main_size * 0.2)
+            final_main_y = main_y
+            continue
+        for dx, dy in offsets:
+            draw.text((current_x + dx, main_y + dy), char, font=main_font, fill=(0, 0, 0, 80))
+        char_bbox = main_font.getbbox(char)
+        current_x += (char_bbox[2] - char_bbox[0]) + char_spacing
+        final_main_y = main_y
+
     # 第一层阴影 (深色，偏移大)
     current_x = main_x
     main_y = main_y_original
@@ -125,7 +142,7 @@ if __name__ == "__main__":
             background,
             output,
             "网球知识百问百答",
-            "为什么计分是\n15-30-40\n而不是 1-2-3?"
+            "为什么网球计分是15-30-40\n而不是1-2-3?"
         )
     else:
         print(f"❌ 请将背景图片命名为: {background}")
