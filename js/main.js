@@ -898,10 +898,7 @@
         },
 
         // Decoration
-        decoration: {
-          id: currentDeco,
-          name: DECO_LABELS[currentDeco] || '',
-        },
+        decoration: currentDeco,
 
         // Background / color scheme
         background: background,
@@ -1002,124 +999,15 @@
         .catch(err => alert('截图失败：' + err));
     }
 
-    // Apply full configuration from JSON (for batch generation in Python)
-    function applyFullConfig(config) {
-      // Set ratio
-      if (config.ratio) {
-        const cover = document.getElementById('cover-main');
-        cover.style.aspectRatio = config.ratio;
-        document.getElementById('ratio-label').textContent = config.ratioLabel || config.ratio;
-        const ratioDefaults = RATIO_PRESETS[config.ratio] || RATIO_PRESETS[DEFAULT_RATIO];
-        cover.style.maxWidth = ratioDefaults.maxWidth;
-        document.getElementById('sld-title').max = ratioDefaults.titleMax;
-        document.getElementById('sld-subtitle').max = ratioDefaults.subtitleMax;
-      }
-
-      // Set content
-      if (config.content) {
-        if (config.content.label !== undefined) {
-          document.getElementById('inp-label').value = config.content.label;
-        }
-        if (config.content.title !== undefined) {
-          document.getElementById('inp-title').value = config.content.title;
-        }
-        if (config.content.subtitle !== undefined) {
-          document.getElementById('inp-subtitle').value = config.content.subtitle;
-        }
-        if (config.content.author !== undefined) {
-          document.getElementById('inp-author').value = config.content.author;
-        }
-      }
-
-      // Set typography
-      if (config.typography) {
-        const t = config.typography;
-        if (t.labelSize !== undefined) document.getElementById('sld-label').value = t.labelSize;
-        if (t.titleSize !== undefined) document.getElementById('sld-title').value = t.titleSize;
-        if (t.subtitleSize !== undefined) document.getElementById('sld-subtitle').value = t.subtitleSize;
-        if (t.contentWidth !== undefined) document.getElementById('sld-width').value = t.contentWidth;
-        if (t.titleLineHeight !== undefined) document.getElementById('sld-title-lh').value = t.titleLineHeight;
-        if (t.subtitleLineHeight !== undefined) document.getElementById('sld-subtitle-lh').value = t.subtitleLineHeight;
-        if (t.titleMarginTop !== undefined) document.getElementById('sld-title-mt').value = t.titleMarginTop;
-        if (t.titleMarginBottom !== undefined) document.getElementById('sld-title-mb').value = t.titleMarginBottom;
-      }
-
-      // Set font
-      if (config.font && config.font.id) {
-        document.getElementById('sel-font').value = config.font.id;
-        applyFontChoice(config.font.id);
-      }
-
-      // Set decoration
-      if (config.decoration && config.decoration.id) {
-        currentDeco = config.decoration.id;
-        document.querySelectorAll('.deco-btn').forEach(b => b.classList.toggle('active', b.dataset.deco === currentDeco));
-        buildDecorations(currentDeco);
-      }
-
-      // Set background
-      if (config.background) {
-        const bg = config.background;
-        if (bg.type === 'custom') {
-          document.getElementById('inp-custom-bg').value = bg.value;
-          document.getElementById('btn-custom-bg').classList.add('active', 'has-custom');
-          document.getElementById('btn-custom-bg').style.background = bg.value;
-          applyCustomBg();
-        } else if (bg.type === 'scheme' && typeof bg.index === 'number') {
-          document.querySelectorAll('.color-btn').forEach(b => b.classList.toggle('active', +b.dataset.scheme === bg.index));
-          applyColorScheme(bg.index);
-        }
-      }
-
-      // Set text colors
-      if (config.textColors) {
-        const tc = config.textColors;
-        if (tc.label !== undefined) document.getElementById('clr-label').value = tc.label;
-        if (tc.title !== undefined) document.getElementById('clr-title').value = tc.title;
-        if (tc.subtitle !== undefined) document.getElementById('clr-subtitle').value = tc.subtitle;
-        if (tc.meta !== undefined) document.getElementById('clr-meta').value = tc.meta;
-        syncTextColors();
-      }
-
-      // Set visibility
-      if (config.visibility) {
-        Object.entries(config.visibility).forEach(([field, show]) => {
-          if (visState[field] !== show) toggleVis(field);
-        });
-      }
-
-      // Set crop
-      if (config.crop) {
-        cropEnabled = config.crop.enabled || false;
-        cropState.cropX = config.crop.x || 0.3;
-        cropState.cropY = config.crop.y || 0.3;
-        cropState.cropSize = config.crop.size || 0.4;
-        setCropEnabled(cropEnabled);
-        updateCropOverlay();
-      }
-
-      // Final sync
-      syncContent();
-      syncAllSliders();
-    }
-
     // ── Init ───────────────────────────────────────────────────────────────
-    // Check if configuration is provided via window.__BATCH_CONFIG for batch generation
-    if (window.__BATCH_CONFIG) {
-      initFontPicker();
-      initPresets();
-      setupCropDrag();
-      applyFullConfig(window.__BATCH_CONFIG);
-    } else {
-      // Normal interactive initialization
-      document.getElementById('inp-label').value = DEFAULT.label;
-      document.getElementById('inp-title').value = DEFAULT.title;
-      document.getElementById('inp-subtitle').value = DEFAULT.subtitle;
-      document.getElementById('inp-author').value = DEFAULT.author;
-      initFontPicker();
-      syncContent();
-      syncAllSliders();
-      initPresets();
-      setupCropDrag();
-      applyPreset(0);
-    }
+    document.getElementById('inp-label').value = DEFAULT.label;
+    document.getElementById('inp-title').value = DEFAULT.title;
+    document.getElementById('inp-subtitle').value = DEFAULT.subtitle;
+    document.getElementById('inp-author').value = DEFAULT.author;
+
+    initFontPicker();
+    syncContent();
+    syncAllSliders();
+    initPresets();
+    setupCropDrag();
+    applyPreset(0);
