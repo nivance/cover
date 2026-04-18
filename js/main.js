@@ -529,8 +529,17 @@
           let newCropY = cropState.startCropY + deltaY;
 
           // Clamp to bounds (keep crop box within cover)
+          // X axis: width in percent is cropSize, so maxX is 1 - cropSize
           newCropX = Math.max(0, Math.min(1 - cropState.cropSize, newCropX));
-          newCropY = Math.max(0, Math.min(1 - cropState.cropSize, newCropY));
+
+          // Y axis: container is rect.width x rect.height (pixels)
+          // Square has size cropSize * rect.width (pixels) because width is cropSize%
+          // So square height in pixels = cropSize * rect.width (because it's square)
+          // Square height in percentage of container height is (cropSize * rect.width) / rect.height
+          const squareHeightPercent = cropState.cropSize * (rect.width / rect.height);
+          // MaxY is 1 - squareHeightPercent
+          const maxY = 1 - squareHeightPercent;
+          newCropY = Math.max(0, Math.min(maxY, newCropY));
 
           cropState.cropX = newCropX;
           cropState.cropY = newCropY;
@@ -549,30 +558,39 @@
           const delta = Math.abs(deltaX) > Math.abs(deltaY) ? deltaX : deltaY;
 
           let newSize = cropState.startCropSize + delta;
-          // Clamp size between 20% and 80%
-          newSize = Math.max(0.2, Math.min(0.8, newSize));
+
+          // Clamp size: minimum 20% of container width
+          const minSize = 0.2;
+          // Maximum size: must fit in container, and keep square
+          // container aspect ratio = rect.width / rect.height
+          // square side (in pixels) = newSize * rect.width
+          // This must be <= rect.height → newSize <= rect.height / rect.width = 1 / (rect.width / rect.height)
+          const maxSizeByHeight = rect.height / rect.width;
+          const maxSize = Math.min(0.8, maxSizeByHeight);
+          newSize = Math.max(minSize, Math.min(maxSize, newSize));
 
           cropState.cropSize = newSize;
 
-          // Update size
+          // Update size - only set width, let CSS aspect-ratio 1/1 maintain square
           cropBorder.style.width = (cropState.cropSize * 100) + '%';
-          cropBorder.style.height = (cropState.cropSize * 100) + '%';
+          // height: auto maintained by CSS, aspect-ratio keeps it square
 
-          // Keep crop box within bounds when resizing from corners
-          if (cropState.resizeHandle.includes('w')) {
-            const maxX = 1 - cropState.cropSize;
-            if (cropState.cropX > maxX) {
-              cropState.cropX = maxX;
-              cropBorder.style.left = (cropState.cropX * 100) + '%';
-            }
-          }
-          if (cropState.resizeHandle.includes('n')) {
-            const maxY = 1 - cropState.cropSize;
-            if (cropState.cropY > maxY) {
-              cropState.cropY = maxY;
-              cropBorder.style.top = (cropState.cropY * 100) + '%';
-            }
-          }
+          // Keep crop box within bounds - cannot go outside cover
+          // Clamp X position: cannot go beyond left or right edge
+          cropState.cropX = Math.max(0, Math.min(1 - cropState.cropSize, cropState.cropX));
+
+          // Clamp Y position: cannot go beyond top or bottom edge
+          // Container: rect.width × rect.height (pixels)
+          // Square has size cropSize × rect.width (pixels), because width is cropSize%
+          // So square height in pixels = cropSize × rect.width (square), which is larger than rect.height when cropSize is big
+          // Convert square height to percentage: (cropSize × rect.width) / rect.height
+          const squareHeightPercent = cropState.cropSize * (rect.width / rect.height);
+          const maxY = 1 - squareHeightPercent;
+          cropState.cropY = Math.max(0, Math.min(maxY, cropState.cropY));
+
+          // Update position after clamping
+          cropBorder.style.left = (cropState.cropX * 100) + '%';
+          cropBorder.style.top = (cropState.cropY * 100) + '%';
         }
       });
 
